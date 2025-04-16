@@ -1,0 +1,11 @@
+Flask==3.0.0
+Flask-SQLAlchemy==3.1.1
+Flask-Login==0.6.3
+Werkzeug==3.0.1
+MySQL-connector-python==8.2.0
+qrcode==7.4.2
+pillow==10.1.0
+PyJWT==2.8.0
+flask-cors==4.0.0
+python-dotenv==1.0.0
+flask-bcrypt==1.0.1

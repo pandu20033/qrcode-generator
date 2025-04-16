@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - QRify</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .logo-text { font-family: 'Poppins', sans-serif; }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-purple-50 min-h-screen">
+    <nav class="bg-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex">
+                    <div class="flex-shrink-0 flex items-center">
+                        <svg class="h-8 w-8 text-purple-600" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M3 3H9V9H3V3Z" fill="currentColor"/>
+                            <path d="M15 3H21V9H15V3Z" fill="currentColor"/>
+                            <path d="M3 15H9V21H3V15Z" fill="currentColor"/>
+                            <path d="M15 15H21V21H15V15Z" fill="currentColor"/>
+                            <path d="M11 3H13V7H11V3Z" fill="currentColor"/>
+                            <path d="M11 17H13V21H11V17Z" fill="currentColor"/>
+                            <path d="M3 11H7V13H3V11Z" fill="currentColor"/>
+                            <path d="M17 11H21V13H17V11Z" fill="currentColor"/>
+                        </svg>
+                        <span class="ml-2 text-2xl font-bold text-gray-900 logo-text">QRify</span>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="/logout" class="text-gray-700 hover:text-purple-600 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">Logout</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6">Generate QR Code</h2>
+            <form id="qrForm" class="space-y-4">
+                <div>
+                    <label for="url" class="block text-sm font-medium text-gray-700">Enter URL</label>
+                    <div class="mt-1">
+                        <input type="url" id="url" name="url" required
+                            class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
+                            placeholder="https://example.com">
+                    </div>
+                </div>
+                <div>
+                    <button type="submit"
+                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors duration-200">
+                        Generate QR Code
+                    </button>
+                </div>
+            </form>
+
+            <div id="qrResult" class="mt-8 hidden">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Generated QR Code</h3>
+                <div class="flex flex-col items-center space-y-4">
+                    <img id="qrImage" src="" alt="Generated QR Code" class="w-48 h-48">
+                    <a id="downloadLink" href="#" download
+                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-purple-600 bg-purple-100 hover:bg-purple-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors duration-200">
+                        Download QR Code
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6">QR Code History</h2>
+            <div id="qrHistory" class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                <!-- QR code history will be populated here -->
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Load QR code history on page load
+        async function loadQRHistory() {
+            try {
+                const response = await fetch('/qr_history');
+                const data = await response.json();
+                const historyContainer = document.getElementById('qrHistory');
+                historyContainer.innerHTML = '';
+
+                data.qr_codes.forEach(qr => {
+                    const card = document.createElement('div');
+                    card.className = 'bg-gray-50 rounded-lg p-4 shadow-sm';
+                    card.innerHTML = `
+                        <img src="/static/qr_codes/${qr.filename}" alt="QR Code" class="w-full h-auto mb-4">
+                        <p class="text-sm text-gray-600 truncate mb-2">${qr.url}</p>
+                        <p class="text-xs text-gray-500 mb-4">${new Date(qr.generated_at).toLocaleDateString()}</p>
+                        <a href="/download/${qr.id}" class="text-purple-600 hover:text-purple-700 text-sm font-medium">Download</a>
+                    `;
+                    historyContainer.appendChild(card);
+                });
+            } catch (error) {
+                console.error('Error loading QR history:', error);
+            }
+        }
+
+        // Handle QR code generation
+        document.getElementById('qrForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const url = document.getElementById('url').value;
+
+            try {
+                const response = await fetch('/generate_qr', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ url })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    const qrResult = document.getElementById('qrResult');
+                    const qrImage = document.getElementById('qrImage');
+                    const downloadLink = document.getElementById('downloadLink');
+
+                    qrImage.src = `/static/qr_codes/${data.qr_code.filename}`;
+                    downloadLink.href = `/download/${data.qr_code.id}`;
+                    qrResult.classList.remove('hidden');
+
+                    // Reload QR history
+                    loadQRHistory();
+                } else {
+                    alert(data.error || 'Failed to generate QR code');
+                }
+            } catch (error) {
+                console.error('Error generating QR code:', error);
+                alert('An error occurred. Please try again.');
+            }
+        });
+
+        // Load QR history when page loads
+        loadQRHistory();
+    </script>
+</body>
+</html>
